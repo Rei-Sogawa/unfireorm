@@ -1,5 +1,5 @@
-import { FireDocument } from "./fire-document";
-import { CollectionGroup, CollectionReference, Converter, DocumentSnapshot, PaginateInput, Query } from "./types";
+import type { FireDocument } from "./fire-document";
+import type { CollectionGroup, CollectionReference, Converter, DocumentSnapshot, PaginateInput, Query } from "./types";
 
 export class FireCollection<TData, TFireDocument extends FireDocument<TData>> {
   readonly ref: CollectionReference<TData>;
