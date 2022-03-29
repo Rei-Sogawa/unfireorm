@@ -51,9 +51,10 @@ export class FireCollection<TData, TFireDocument extends FireDocument<TData>> {
           : this.findManyByQuery(() => forward.limit(first));
       }
       if (last) {
-        return last
-          ? this.findManyByQuery(() => backward.startAfter(before).limit(last))
-          : this.findManyByQuery(() => backward.limit(last));
+        const _nodes = before
+          ? await this.findManyByQuery(() => backward.startAfter(before).limit(last))
+          : await this.findManyByQuery(() => backward.limit(last));
+        return _nodes.reverse();
       }
       return this.findManyByQuery(() => forward);
     })();
@@ -153,9 +154,10 @@ export class FireCollectionGroup<TData extends { __id: string }, TFireDocument e
           : this.findManyByQuery(() => forward.limit(first));
       }
       if (last) {
-        return last
-          ? this.findManyByQuery(() => backward.startAfter(before).limit(last))
-          : this.findManyByQuery(() => backward.limit(last));
+        const _nodes = before
+          ? await this.findManyByQuery(() => backward.startAfter(before).limit(last))
+          : await this.findManyByQuery(() => backward.limit(last));
+        return _nodes.reverse();
       }
       return this.findManyByQuery(() => forward);
     })();
