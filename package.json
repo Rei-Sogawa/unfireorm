@@ -9,10 +9,12 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc",
-    "prepublish": "yarn build"
+    "prepublish": "yarn build",
+    "emu": "firebase emulators:start --only firestore"
   },
   "devDependencies": {
     "firebase-admin": "^10.0.2",
+    "firebase-tools": "^10.5.0",
     "typescript": "^4.6.3"
   }
 }
