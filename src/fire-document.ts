@@ -3,7 +3,7 @@ import type { Converter, DocumentReference, DocumentSnapshot } from "./types";
 export class FireDocument<TData> {
   readonly id: string;
   readonly ref: DocumentReference<TData>;
-  parse: (data: unknown) => TData;
+  readonly parse: (data: unknown) => TData;
 
   constructor({
     snap,

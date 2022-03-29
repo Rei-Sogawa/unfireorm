@@ -62,6 +62,7 @@ export class FireCollection<TData, TFireDocument extends FireDocument<TData>> {
     const edges = nodes.map((node) => {
       const data = node.toPlainData();
       const cursor = data[cursorField] as TCursor;
+      if (typeof cursor === "undefined") throw new Error(`data[${cursorField}] is undefined.`);
       return { node, cursor };
     });
 
@@ -165,6 +166,7 @@ export class FireCollectionGroup<TData extends { __id: string }, TFireDocument e
     const edges = nodes.map((node) => {
       const data = node.toPlainData();
       const cursor = data[cursorField] as TCursor;
+      if (typeof cursor === "undefined") throw new Error(`data[${cursorField}] is undefined.`);
       return { node, cursor };
     });
 
