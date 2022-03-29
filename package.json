@@ -1,14 +1,15 @@
 {
   "private": false,
   "name": "@rei-sogawa/unfireorm",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "repository": "https://github.com/Rei-Sogawa/unfireorm.git",
   "author": "Rei-Sogawa <natto.and.eggs@gmail.com>",
   "license": "MIT",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "prepublish": "yarn build"
   },
   "devDependencies": {
     "firebase-admin": "^10.0.2",
