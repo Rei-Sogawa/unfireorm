@@ -32,7 +32,7 @@ export class FireCollection<TData extends Record<string, unknown>, TFireDocument
     return this.ref.doc(id).get().then(this.transformer);
   }
   paginate<TCursor>(input: Omit<_PaginateInput<TCursor, TData, TFireDocument>, "findManyByQuery">) {
-    return _paginate<TCursor, TData, TFireDocument>({ ...input, findManyByQuery: this.findManyByQuery });
+    return _paginate<TCursor, TData, TFireDocument>({ ...input, findManyByQuery: this.findManyByQuery.bind(this) });
   }
 
   insert(data: TData): Promise<DocumentReference<TData>>;

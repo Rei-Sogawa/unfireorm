@@ -1,9 +1,10 @@
 import { Timestamp } from "firebase-admin/firestore";
-import { afterAll, assert, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
 import { CollectionReference } from "../src/types";
 import { FireCollection } from "./../src/fire-collection";
 import { FireDocument } from "./../src/fire-document";
+import { PaginateInput } from "./../src/types";
 import { clearFirestore, getDb } from "./test-util";
 
 const db = getDb();
@@ -18,11 +19,11 @@ class UsersCollection extends FireCollection<UserData, UserDoc> {
   constructor(ref: CollectionReference) {
     super(ref, (snap) => new UserDoc(snap));
   }
-  findAll(paginateInput) {
+  findAll(paginateInput: PaginateInput<Timestamp>) {
     return this.paginate({
       paginateInput,
-      forward: this.ref.orderBy("createdAt", "desc"),
-      backward: this.ref.orderBy("createdAt", "asc"),
+      forward: this.ref.orderBy("createdAt", "asc"),
+      backward: this.ref.orderBy("createdAt", "desc"),
       cursorField: "createdAt",
     });
   }
@@ -108,7 +109,23 @@ describe("fire-collection", () => {
     await Promise.all(dataList.map((data) => usersRef.add(data)));
 
     const all = await usersCollection.findAll({});
+    expect(dataList).toStrictEqual(all.edges.map((edge) => edge.node.toData()));
 
-    expect(dataList).toStrictEqual(all);
+    const SIZE = 2;
+
+    const firstPage = await usersCollection.findAll({ first: SIZE });
+    expect(dataList.slice(0, 2)).toStrictEqual(firstPage.edges.map((edge) => edge.node.toData()));
+
+    const secondPage = await usersCollection.findAll({ first: SIZE, after: firstPage.pageInfo.endCursor });
+    expect(dataList.slice(2, 4)).toStrictEqual(secondPage.edges.map((edge) => edge.node.toData()));
+
+    const thirdPage = await usersCollection.findAll({ first: SIZE, after: secondPage.pageInfo.endCursor });
+    expect(dataList.slice(4, 6)).toStrictEqual(thirdPage.edges.map((edge) => edge.node.toData()));
+
+    const backToSecondPage = await usersCollection.findAll({ last: SIZE, before: thirdPage.pageInfo.startCursor });
+    expect(dataList.slice(2, 4)).toStrictEqual(backToSecondPage.edges.map((edge) => edge.node.toData()));
+
+    const lastPage = await usersCollection.findAll({ last: SIZE });
+    expect(dataList.slice(8, 10)).toStrictEqual(lastPage.edges.map((edge) => edge.node.toData()));
   });
 });

@@ -39,7 +39,7 @@ export const _paginate = async <
     if (last) {
       const backwardNodes = before
         ? await findManyByQuery(() => backward.startAfter(before).limit(last))
-        : await findManyByQuery(() => forward.limit(last));
+        : await findManyByQuery(() => backward.limit(last));
       return backwardNodes.reverse();
     }
     return findManyByQuery(() => forward);
