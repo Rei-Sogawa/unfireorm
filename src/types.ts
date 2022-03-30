@@ -23,3 +23,5 @@ export type PageInfo<TCursor> = {
   hasNextPage: boolean;
   hasPreviousPage: boolean;
 };
+
+export type WriteResult = admin.firestore.WriteResult;

@@ -1,41 +1,26 @@
+import { FireCollection } from "./fire-collection";
 import type { Converter, DocumentReference, DocumentSnapshot } from "./types";
 
-export class FireDocument<TData> {
+export class FireDocument<TData extends Record<string, unknown>> {
   readonly id: string;
   readonly ref: DocumentReference<TData>;
-  readonly parse: (data: unknown) => TData;
 
-  constructor({
-    snap,
-    parse,
-    converter,
-  }: {
-    snap: DocumentSnapshot<TData>;
-    parse: (data: unknown) => TData;
-    converter: Converter<TData>;
-  }) {
+  constructor({ snap, converter }: { snap: DocumentSnapshot<TData>; converter?: Converter<TData> }) {
     this.id = snap.id;
-    this.ref = snap.ref.withConverter(converter);
-    this.parse = parse;
+    this.ref = converter ? snap.ref.withConverter(converter) : (snap.ref as DocumentReference<TData>);
 
     const data = snap.data();
     Object.assign(this, data);
   }
 
-  toPlainData() {
-    const { id, ref, parse, ...rest } = this;
-    const data = Object.fromEntries(Object.entries(rest).filter(([key]) => !key.toLowerCase().endsWith("collection")));
-    return data;
-  }
-  toParsedData() {
-    return this.parse(this.toPlainData());
-  }
   toData() {
-    return this.toParsedData();
+    const { id, ref, ...rest } = this;
+    const data = Object.fromEntries(Object.entries(rest).filter(([_key, value]) => !(value instanceof FireCollection)));
+    return data as TData;
   }
 
   update() {
-    return this.ref.set(this.toParsedData());
+    return this.ref.set(this.toData());
   }
   delete() {
     return this.ref.delete();

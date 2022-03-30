@@ -1,24 +1,29 @@
 import type { FireDocument } from "./fire-document";
-import type { CollectionGroup, CollectionReference, Converter, DocumentSnapshot, PaginateInput, Query } from "./types";
+import type {
+  CollectionGroup,
+  CollectionReference,
+  Converter,
+  DocumentReference,
+  DocumentSnapshot,
+  PaginateInput,
+  Query,
+  WriteResult,
+} from "./types";
 
-export class FireCollection<TData, TFireDocument extends FireDocument<TData>> {
+export class FireCollection<TData extends Record<string, unknown>, TFireDocument extends FireDocument<TData>> {
   readonly ref: CollectionReference<TData>;
-  readonly parse: (data: unknown) => TData;
   readonly transformer: (dSnap: DocumentSnapshot<TData>) => TFireDocument;
 
   constructor({
     ref,
-    parse,
     transformer,
     converter,
   }: {
     ref: CollectionReference;
-    parse: (data: unknown) => TData;
     transformer: (dSnap: DocumentSnapshot<TData>) => TFireDocument;
-    converter: Converter<TData>;
+    converter?: Converter<TData>;
   }) {
-    this.ref = ref.withConverter(converter);
-    this.parse = parse;
+    this.ref = converter ? ref.withConverter(converter) : (ref as CollectionReference<TData>);
     this.transformer = transformer;
   }
 
@@ -60,7 +65,7 @@ export class FireCollection<TData, TFireDocument extends FireDocument<TData>> {
     })();
 
     const edges = nodes.map((node) => {
-      const data = node.toPlainData();
+      const data = node.toData();
       const cursor = data[cursorField] as TCursor;
       if (typeof cursor === "undefined") throw new Error(`data[${cursorField}] is undefined.`);
       return { node, cursor };
@@ -87,28 +92,26 @@ export class FireCollection<TData, TFireDocument extends FireDocument<TData>> {
     };
   }
 
-  insert(data: TData): Promise<TFireDocument>;
-  insert(data: TData & { id: string }): Promise<TFireDocument>;
+  insert(data: TData): Promise<DocumentReference<TData>>;
+  insert(data: TData & { id: string }): Promise<WriteResult>;
   async insert(data: TData & { id?: string }) {
-    const { id, ...withoutId } = data;
-    const parsedData = this.parse(withoutId);
+    const { id, ...rest } = data;
     if (id) {
-      await this.ref.doc(id).set(parsedData);
-      return this.findOneById(id);
+      return this.ref.doc(id).set(rest as TData);
     }
-    const dRef = await this.ref.add(parsedData);
-    return this.findOneById(dRef.id);
+    return this.ref.add(rest as TData);
   }
 }
 
-export class FireCollectionGroup<TData extends { __id: string }, TFireDocument extends FireDocument<TData>> {
+export class FireCollectionGroup<
+  TData extends Record<string, unknown> & { __id: string },
+  TFireDocument extends FireDocument<TData>
+> {
   readonly ref: CollectionGroup<TData>;
-  readonly parse: (data: unknown) => TData;
   readonly transformer: (dSnap: DocumentSnapshot<TData>) => TFireDocument;
 
   constructor({
     ref,
-    parse,
     transformer,
     converter,
   }: {
@@ -118,7 +121,6 @@ export class FireCollectionGroup<TData extends { __id: string }, TFireDocument e
     converter: Converter<TData>;
   }) {
     this.ref = ref.withConverter(converter);
-    this.parse = parse;
     this.transformer = transformer;
   }
 
@@ -164,7 +166,7 @@ export class FireCollectionGroup<TData extends { __id: string }, TFireDocument e
     })();
 
     const edges = nodes.map((node) => {
-      const data = node.toPlainData();
+      const data = node.toData();
       const cursor = data[cursorField] as TCursor;
       if (typeof cursor === "undefined") throw new Error(`data[${cursorField}] is undefined.`);
       return { node, cursor };
