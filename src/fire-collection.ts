@@ -79,6 +79,6 @@ export class FireCollectionGroup<
     });
   }
   paginate<TCursor>(input: Omit<_PaginateInput<TCursor, TData, TFireDocument>, "findManyByQuery">) {
-    return () => _paginate<TCursor, TData, TFireDocument>({ ...input, findManyByQuery: this.findManyByQuery });
+    return _paginate<TCursor, TData, TFireDocument>({ ...input, findManyByQuery: this.findManyByQuery.bind(this) });
   }
 }

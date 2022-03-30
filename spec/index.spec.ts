@@ -58,7 +58,7 @@ describe("fire-collection", () => {
       .get()
       .then((snap) => snap.data());
 
-    expect(data).toStrictEqual(gotData);
+    expect(gotData).toStrictEqual(data);
   });
 
   it("insert (with id)", async () => {
@@ -70,7 +70,7 @@ describe("fire-collection", () => {
       .get()
       .then((snap) => snap.data());
 
-    expect(data).toStrictEqual(gotData);
+    expect(gotData).toStrictEqual(data);
   });
 
   it("findOneById", async () => {
@@ -79,7 +79,7 @@ describe("fire-collection", () => {
 
     const user = await usersCollection.findOneById(id);
 
-    expect(data).toStrictEqual(user.toData());
+    expect(user.toData()).toStrictEqual(data);
   });
 
   it("findManyByQuery", async () => {
@@ -91,7 +91,7 @@ describe("fire-collection", () => {
 
     const [user1] = await usersCollection.findManyByQuery((ref) => ref.where("displayName", "==", "user-1"));
 
-    expect(data1).toStrictEqual(user1.toData());
+    expect(user1.toData()).toStrictEqual(data1);
   });
 
   it("paginate", async () => {
@@ -109,23 +109,28 @@ describe("fire-collection", () => {
     await Promise.all(dataList.map((data) => usersRef.add(data)));
 
     const all = await usersCollection.findAll({});
-    expect(dataList).toStrictEqual(all.edges.map((edge) => edge.node.toData()));
+    expect(all.edges.map((edge) => edge.node.toData())).toStrictEqual(dataList);
 
     const SIZE = 2;
 
     const firstPage = await usersCollection.findAll({ first: SIZE });
-    expect(dataList.slice(0, 2)).toStrictEqual(firstPage.edges.map((edge) => edge.node.toData()));
+    const firstPageData = firstPage.edges.map((edge) => edge.node.toData());
+    expect(firstPageData).toStrictEqual(dataList.slice(0, 2));
 
     const secondPage = await usersCollection.findAll({ first: SIZE, after: firstPage.pageInfo.endCursor });
-    expect(dataList.slice(2, 4)).toStrictEqual(secondPage.edges.map((edge) => edge.node.toData()));
+    const secondPageData = secondPage.edges.map((edge) => edge.node.toData());
+    expect(secondPageData).toStrictEqual(dataList.slice(2, 4));
 
     const thirdPage = await usersCollection.findAll({ first: SIZE, after: secondPage.pageInfo.endCursor });
-    expect(dataList.slice(4, 6)).toStrictEqual(thirdPage.edges.map((edge) => edge.node.toData()));
+    const thirdPageData = thirdPage.edges.map((edge) => edge.node.toData());
+    expect(thirdPageData).toStrictEqual(dataList.slice(4, 6));
 
     const backToSecondPage = await usersCollection.findAll({ last: SIZE, before: thirdPage.pageInfo.startCursor });
-    expect(dataList.slice(2, 4)).toStrictEqual(backToSecondPage.edges.map((edge) => edge.node.toData()));
+    const backToSecondPageData = backToSecondPage.edges.map((edge) => edge.node.toData());
+    expect(backToSecondPageData).toStrictEqual(dataList.slice(2, 4));
 
     const lastPage = await usersCollection.findAll({ last: SIZE });
-    expect(dataList.slice(8, 10)).toStrictEqual(lastPage.edges.map((edge) => edge.node.toData()));
+    const lastPageData = lastPage.edges.map((edge) => edge.node.toData());
+    expect(lastPageData).toStrictEqual(dataList.slice(8, 10));
   });
 });
