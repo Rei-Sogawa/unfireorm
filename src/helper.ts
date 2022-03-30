@@ -3,7 +3,19 @@ import { CollectionGroup, CollectionReference, PaginateInput, Query } from "./ty
 
 type FindManyByQuery<TData extends Record<string, unknown>, TFirestoreDocument extends FireDocument<TData>> = (
   queryFn: (ref: CollectionReference<TData> | CollectionGroup<TData>) => Query<TData>
-) => TFirestoreDocument[];
+) => Promise<TFirestoreDocument[]>;
+
+export type _PaginateInput<
+  TCursor,
+  TData extends Record<string, unknown>,
+  TFirestoreDocument extends FireDocument<TData>
+> = {
+  paginateInput: PaginateInput<TCursor>;
+  forward: Query<TData>;
+  backward: Query<TData>;
+  cursorField: string;
+  findManyByQuery: FindManyByQuery<TData, TFirestoreDocument>;
+};
 
 export const _paginate = async <
   TCursor,
@@ -15,13 +27,7 @@ export const _paginate = async <
   backward,
   cursorField,
   findManyByQuery,
-}: {
-  paginateInput: PaginateInput<TCursor>;
-  forward: Query<TData>;
-  backward: Query<TData>;
-  cursorField: string;
-  findManyByQuery: FindManyByQuery<TData, TFirestoreDocument>;
-}) => {
+}: _PaginateInput<TCursor, TData, TFirestoreDocument>) => {
   const { first, after, last, before } = paginateInput;
 
   const nodes = await (async () => {
@@ -31,9 +37,9 @@ export const _paginate = async <
         : findManyByQuery(() => forward.limit(first));
     }
     if (last) {
-      const backwardNodes = (await before)
-        ? findManyByQuery(() => backward.startAfter(before).limit(last))
-        : findManyByQuery(() => forward.limit(last));
+      const backwardNodes = before
+        ? await findManyByQuery(() => backward.startAfter(before).limit(last))
+        : await findManyByQuery(() => forward.limit(last));
       return backwardNodes.reverse();
     }
     return findManyByQuery(() => forward);

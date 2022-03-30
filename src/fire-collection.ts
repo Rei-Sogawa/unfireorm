@@ -1,11 +1,11 @@
 import type { FireDocument } from "./fire-document";
+import { _paginate, _PaginateInput } from "./helper";
 import type {
   CollectionGroup,
   CollectionReference,
   Converter,
   DocumentReference,
   DocumentSnapshot,
-  PaginateInput,
   Query,
   WriteResult,
 } from "./types";
@@ -35,61 +35,8 @@ export class FireCollection<TData extends Record<string, unknown>, TFireDocument
   findOneById(id: string) {
     return this.ref.doc(id).get().then(this.transformer);
   }
-
-  async paginate<TCursor>({
-    paginateInput,
-    forward,
-    backward,
-    cursorField,
-  }: {
-    paginateInput: PaginateInput<TCursor>;
-    forward: Query<TData>;
-    backward: Query<TData>;
-    cursorField: string;
-  }) {
-    const { first, after, last, before } = paginateInput;
-
-    const nodes = await (async () => {
-      if (first) {
-        return after
-          ? this.findManyByQuery(() => forward.startAfter(after).limit(first))
-          : this.findManyByQuery(() => forward.limit(first));
-      }
-      if (last) {
-        const _nodes = before
-          ? await this.findManyByQuery(() => backward.startAfter(before).limit(last))
-          : await this.findManyByQuery(() => backward.limit(last));
-        return _nodes.reverse();
-      }
-      return this.findManyByQuery(() => forward);
-    })();
-
-    const edges = nodes.map((node) => {
-      const data = node.toData();
-      const cursor = data[cursorField] as TCursor;
-      if (typeof cursor === "undefined") throw new Error(`data[${cursorField}] is undefined.`);
-      return { node, cursor };
-    });
-
-    const endCursor = edges.at(-1)?.cursor;
-    const startCursor = edges.at(0)?.cursor;
-
-    const hasNextPage = endCursor
-      ? (await this.findManyByQuery(() => forward.startAfter(endCursor).limit(1))).length > 0
-      : false;
-    const hasPreviousPage = startCursor
-      ? (await this.findManyByQuery(() => forward.endBefore(startCursor).limit(1))).length > 0
-      : false;
-
-    return {
-      edges,
-      pageInfo: {
-        startCursor,
-        endCursor,
-        hasNextPage,
-        hasPreviousPage,
-      },
-    };
+  paginate<TCursor>(input: Omit<_PaginateInput<TCursor, TData, TFireDocument>, "findManyByQuery">) {
+    return () => _paginate<TCursor, TData, TFireDocument>({ ...input, findManyByQuery: this.findManyByQuery });
   }
 
   insert(data: TData): Promise<DocumentReference<TData>>;
@@ -116,11 +63,10 @@ export class FireCollectionGroup<
     converter,
   }: {
     ref: CollectionGroup;
-    parse: (data: unknown) => TData;
     transformer: (dSnap: DocumentSnapshot<TData>) => TFireDocument;
-    converter: Converter<TData>;
+    converter?: Converter<TData>;
   }) {
-    this.ref = ref.withConverter(converter);
+    this.ref = converter ? ref.withConverter(converter) : (ref as CollectionGroup<TData>);
     this.transformer = transformer;
   }
 
@@ -136,60 +82,7 @@ export class FireCollectionGroup<
       return doc;
     });
   }
-
-  async paginate<TCursor>({
-    paginateInput,
-    forward,
-    backward,
-    cursorField,
-  }: {
-    paginateInput: PaginateInput<TCursor>;
-    forward: Query<TData>;
-    backward: Query<TData>;
-    cursorField: string;
-  }) {
-    const { first, after, last, before } = paginateInput;
-
-    const nodes = await (async () => {
-      if (first) {
-        return after
-          ? this.findManyByQuery(() => forward.startAfter(after).limit(first))
-          : this.findManyByQuery(() => forward.limit(first));
-      }
-      if (last) {
-        const _nodes = before
-          ? await this.findManyByQuery(() => backward.startAfter(before).limit(last))
-          : await this.findManyByQuery(() => backward.limit(last));
-        return _nodes.reverse();
-      }
-      return this.findManyByQuery(() => forward);
-    })();
-
-    const edges = nodes.map((node) => {
-      const data = node.toData();
-      const cursor = data[cursorField] as TCursor;
-      if (typeof cursor === "undefined") throw new Error(`data[${cursorField}] is undefined.`);
-      return { node, cursor };
-    });
-
-    const endCursor = edges.at(-1)?.cursor;
-    const startCursor = edges.at(0)?.cursor;
-
-    const hasNextPage = endCursor
-      ? (await this.findManyByQuery(() => forward.startAfter(endCursor).limit(1))).length > 0
-      : false;
-    const hasPreviousPage = startCursor
-      ? (await this.findManyByQuery(() => forward.endBefore(startCursor).limit(1))).length > 0
-      : false;
-
-    return {
-      edges,
-      pageInfo: {
-        startCursor,
-        endCursor,
-        hasNextPage,
-        hasPreviousPage,
-      },
-    };
+  paginate<TCursor>(input: Omit<_PaginateInput<TCursor, TData, TFireDocument>, "findManyByQuery">) {
+    return () => _paginate<TCursor, TData, TFireDocument>({ ...input, findManyByQuery: this.findManyByQuery });
   }
 }
