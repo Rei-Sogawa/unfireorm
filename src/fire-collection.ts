@@ -14,15 +14,11 @@ export class FireCollection<TData extends Record<string, unknown>, TFireDocument
   readonly ref: CollectionReference<TData>;
   readonly transformer: (dSnap: DocumentSnapshot<TData>) => TFireDocument;
 
-  constructor({
-    ref,
-    transformer,
-    converter,
-  }: {
-    ref: CollectionReference;
-    transformer: (dSnap: DocumentSnapshot<TData>) => TFireDocument;
-    converter?: Converter<TData>;
-  }) {
+  constructor(
+    ref: CollectionReference,
+    transformer: (dSnap: DocumentSnapshot<TData>) => TFireDocument,
+    converter?: Converter<TData>
+  ) {
     this.ref = converter ? ref.withConverter(converter) : (ref as CollectionReference<TData>);
     this.transformer = transformer;
   }
@@ -36,7 +32,7 @@ export class FireCollection<TData extends Record<string, unknown>, TFireDocument
     return this.ref.doc(id).get().then(this.transformer);
   }
   paginate<TCursor>(input: Omit<_PaginateInput<TCursor, TData, TFireDocument>, "findManyByQuery">) {
-    return () => _paginate<TCursor, TData, TFireDocument>({ ...input, findManyByQuery: this.findManyByQuery });
+    return _paginate<TCursor, TData, TFireDocument>({ ...input, findManyByQuery: this.findManyByQuery });
   }
 
   insert(data: TData): Promise<DocumentReference<TData>>;

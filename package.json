@@ -10,9 +10,7 @@
   "scripts": {
     "build": "tsc",
     "prepublish": "yarn build",
-    "emu": "firebase emulators:start --only firestore",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "emu": "firebase emulators:start --only firestore --project unfireorm"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.17.0",

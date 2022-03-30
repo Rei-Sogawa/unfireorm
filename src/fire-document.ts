@@ -5,7 +5,7 @@ export class FireDocument<TData extends Record<string, unknown>> {
   readonly id: string;
   readonly ref: DocumentReference<TData>;
 
-  constructor({ snap, converter }: { snap: DocumentSnapshot<TData>; converter?: Converter<TData> }) {
+  constructor(snap: DocumentSnapshot<TData>, converter?: Converter<TData>) {
     this.id = snap.id;
     this.ref = converter ? snap.ref.withConverter(converter) : (snap.ref as DocumentReference<TData>);
 
