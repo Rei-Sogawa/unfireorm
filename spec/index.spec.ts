@@ -50,7 +50,11 @@ type PostData = {
   content: string;
   createdAt: Timestamp;
 };
-class PostDoc extends FireDocument<PostData> {
+class PostDoc extends FireDocument<PostData> implements PostData {
+  __id: string;
+  content: string;
+  createdAt: Timestamp;
+
   static create(data: Partial<PostData>): PostData {
     return {
       __id: id(),
