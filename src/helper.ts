@@ -5,29 +5,23 @@ type FindManyByQuery<TData extends Record<string, unknown>, TFirestoreDocument e
   queryFn: (ref: CollectionReference<TData> | CollectionGroup<TData>) => Query<TData>
 ) => Promise<TFirestoreDocument[]>;
 
-export type _PaginateInput<
+export const _paginateQuery = async <
   TCursor,
   TData extends Record<string, unknown>,
   TFirestoreDocument extends FireDocument<TData>
-> = {
-  paginateInput: PaginateInput<TCursor>;
-  forward: Query<TData>;
-  backward: Query<TData>;
-  cursorField: string;
-  findManyByQuery: FindManyByQuery<TData, TFirestoreDocument>;
-};
-
-export const _paginate = async <
-  TCursor,
-  TData extends Record<string, unknown>,
-  TFirestoreDocument extends FireDocument<TData>
->({
-  paginateInput,
-  forward,
-  backward,
-  cursorField,
-  findManyByQuery,
-}: _PaginateInput<TCursor, TData, TFirestoreDocument>) => {
+>(
+  paginateInput: PaginateInput<TCursor>,
+  {
+    forward,
+    backward,
+    cursorField,
+  }: {
+    forward: Query<TData>;
+    backward: Query<TData>;
+    cursorField: string;
+  },
+  findManyByQuery: FindManyByQuery<TData, TFirestoreDocument>
+) => {
   const { first, after, last, before } = paginateInput;
 
   const nodes = await (async () => {

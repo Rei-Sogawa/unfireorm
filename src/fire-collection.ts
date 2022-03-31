@@ -1,11 +1,12 @@
 import type { FireDocument } from "./fire-document";
-import { _paginate, _PaginateInput } from "./helper";
+import { _paginateQuery } from "./helper";
 import type {
   CollectionGroup,
   CollectionReference,
   Converter,
   DocumentReference,
   DocumentSnapshot,
+  PaginateInput,
   Query,
   WriteResult,
 } from "./types";
@@ -31,8 +32,23 @@ export class FireCollection<TData extends Record<string, unknown>, TFireDocument
   findOneById(id: string) {
     return this.ref.doc(id).get().then(this.transformer);
   }
-  paginate<TCursor>(input: Omit<_PaginateInput<TCursor, TData, TFireDocument>, "findManyByQuery">) {
-    return _paginate<TCursor, TData, TFireDocument>({ ...input, findManyByQuery: this.findManyByQuery.bind(this) });
+  paginateQuery<TCursor>(
+    paginateInput: PaginateInput<TCursor>,
+    {
+      forward,
+      backward,
+      cursorField,
+    }: {
+      forward: Query<TData>;
+      backward: Query<TData>;
+      cursorField: string;
+    }
+  ) {
+    return _paginateQuery<TCursor, TData, TFireDocument>(
+      paginateInput,
+      { forward, backward, cursorField },
+      this.findManyByQuery.bind(this)
+    );
   }
 
   insert(data: TData): Promise<DocumentReference<TData>>;
@@ -78,7 +94,22 @@ export class FireCollectionGroup<
       return doc;
     });
   }
-  paginate<TCursor>(input: Omit<_PaginateInput<TCursor, TData, TFireDocument>, "findManyByQuery">) {
-    return _paginate<TCursor, TData, TFireDocument>({ ...input, findManyByQuery: this.findManyByQuery.bind(this) });
+  paginateQuery<TCursor>(
+    paginateInput: PaginateInput<TCursor>,
+    {
+      forward,
+      backward,
+      cursorField,
+    }: {
+      forward: Query<TData>;
+      backward: Query<TData>;
+      cursorField: string;
+    }
+  ) {
+    return _paginateQuery<TCursor, TData, TFireDocument>(
+      paginateInput,
+      { forward, backward, cursorField },
+      this.findManyByQuery.bind(this)
+    );
   }
 }

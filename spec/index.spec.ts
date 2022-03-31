@@ -20,8 +20,7 @@ class UsersCollection extends FireCollection<UserData, UserDoc> {
     super(ref, (snap) => new UserDoc(snap));
   }
   findAll(paginateInput: PaginateInput<Timestamp>) {
-    return this.paginate({
-      paginateInput,
+    return this.paginateQuery(paginateInput, {
       forward: this.ref.orderBy("createdAt", "asc"),
       backward: this.ref.orderBy("createdAt", "desc"),
       cursorField: "createdAt",
