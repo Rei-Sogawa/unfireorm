@@ -5,9 +5,9 @@ export class FireDocument<TData extends Record<string, unknown>> {
   readonly id: string;
   readonly ref: DocumentReference<TData>;
 
-  constructor(snap: DocumentSnapshot<TData>, converter?: Converter<TData>) {
+  constructor(snap: Pick<DocumentSnapshot<TData>, "id" | "ref" | "data">, converter?: Converter<TData>) {
     this.id = snap.id;
-    this.ref = converter ? snap.ref.withConverter(converter) : (snap.ref as DocumentReference<TData>);
+    this.ref = converter ? snap.ref.withConverter(converter) : snap.ref;
 
     const data = snap.data();
     Object.assign(this, data);
@@ -15,7 +15,7 @@ export class FireDocument<TData extends Record<string, unknown>> {
 
   toData() {
     const { id, ref, ...rest } = this;
-    const data = Object.fromEntries(Object.entries(rest).filter(([_key, value]) => !(value instanceof FireCollection)));
+    const data = Object.fromEntries(Object.entries(rest).filter(([, value]) => !(value instanceof FireCollection)));
     return data as TData;
   }
 
@@ -24,8 +24,5 @@ export class FireDocument<TData extends Record<string, unknown>> {
   }
   delete() {
     return this.ref.delete();
-  }
-  recursiveDelete() {
-    return this.ref.firestore.recursiveDelete(this.ref);
   }
 }

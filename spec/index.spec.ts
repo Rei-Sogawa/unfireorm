@@ -1,44 +1,99 @@
 import { Timestamp } from "firebase-admin/firestore";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
-import { CollectionReference } from "../src/types";
-import { FireCollection } from "./../src/fire-collection";
+import { CollectionGroup, CollectionReference } from "../src/types";
+import { FireCollection, FireCollectionGroup } from "./../src/fire-collection";
 import { FireDocument } from "./../src/fire-document";
-import { PaginateInput } from "./../src/types";
-import { clearFirestore, getDb } from "./test-util";
+import { PaginateInput, paginateQuery } from "./../src/helper";
+import { clearFirestore, getDb, id } from "./test-util";
 
 const db = getDb();
 const usersRef = db.collection("users");
+const postsGroupRef = db.collectionGroup("posts");
 
 type UserData = {
   displayName: string;
   createdAt: Timestamp;
 };
-class UserDoc extends FireDocument<UserData> {}
+class UserDoc extends FireDocument<UserData> {
+  postsCollection = new PostsCollection(this.ref.collection("posts"));
+  static create(data: Partial<UserData>): UserData {
+    return {
+      displayName: "MyString",
+      createdAt: Timestamp.fromDate(new Date("1999-12-31")),
+      ...data,
+    };
+  }
+}
 class UsersCollection extends FireCollection<UserData, UserDoc> {
   constructor(ref: CollectionReference) {
     super(ref, (snap) => new UserDoc(snap));
   }
   findAll(paginateInput: PaginateInput<Timestamp>) {
-    return this.paginateQuery(paginateInput, {
-      forward: this.ref.orderBy("createdAt", "asc"),
-      backward: this.ref.orderBy("createdAt", "desc"),
-      cursorField: "createdAt",
-    });
+    return paginateQuery(
+      paginateInput,
+      {
+        forward: this.ref.orderBy("createdAt", "asc"),
+        backward: this.ref.orderBy("createdAt", "desc"),
+        cursorField: "createdAt",
+      },
+      this.findManyByQuery.bind(this)
+    );
   }
 }
 
-const createUserData = ({
-  displayName = "MyString",
-  createdAt = Timestamp.fromDate(new Date("1999-12-31")),
-}: {
-  displayName?: string;
-  createdAt?: Timestamp;
-}): UserData => {
-  return { displayName, createdAt };
+type PostData = {
+  __id: string;
+  content: string;
+  createdAt: Timestamp;
 };
+class PostDoc extends FireDocument<PostData> {
+  static create(data: Partial<PostData>): PostData {
+    return {
+      __id: id(),
+      content: "MyString",
+      createdAt: Timestamp.fromDate(new Date("1999-12-31")),
+      ...data,
+    };
+  }
+}
+class PostsCollection extends FireCollection<PostData, PostDoc> {
+  constructor(ref: CollectionReference) {
+    super(ref, (snap) => new PostDoc(snap));
+  }
+  findAll(paginateInput: PaginateInput<Timestamp>) {
+    return paginateQuery(
+      paginateInput,
+      {
+        forward: this.ref.orderBy("createdAt", "asc"),
+        backward: this.ref.orderBy("createdAt", "desc"),
+        cursorField: "createdAt",
+      },
+      this.findManyByQuery.bind(this)
+    );
+  }
+}
+class PostsCollectionGroup extends FireCollectionGroup<PostData, PostDoc> {
+  constructor(ref: CollectionGroup) {
+    super(ref, (snap) => new PostDoc(snap));
+  }
+  findAll(paginateInput: PaginateInput<Timestamp>) {
+    return paginateQuery(
+      paginateInput,
+      {
+        forward: this.ref.orderBy("createdAt", "asc"),
+        backward: this.ref.orderBy("createdAt", "desc"),
+        cursorField: "createdAt",
+      },
+      this.findManyByQuery.bind(this)
+    );
+  }
+}
 
-describe("fire-collection", () => {
+describe("unfireorm", () => {
+  const usersCollection = new UsersCollection(usersRef);
+  const postsCollectionGroup = new PostsCollectionGroup(postsGroupRef);
+
   beforeEach(async () => {
     await clearFirestore();
   });
@@ -46,10 +101,8 @@ describe("fire-collection", () => {
     await clearFirestore();
   });
 
-  const usersCollection = new UsersCollection(usersRef);
-
   it("insert", async () => {
-    const data = createUserData({ displayName: "user-1" });
+    const data = UserDoc.create({ displayName: "user-1" });
     const { id } = await usersCollection.insert(data);
 
     const gotData = await usersRef
@@ -61,7 +114,7 @@ describe("fire-collection", () => {
   });
 
   it("insert (with id)", async () => {
-    const data = createUserData({ displayName: "user-1" });
+    const data = UserDoc.create({ displayName: "user-1" });
     await usersCollection.insert({ id: "1", ...data });
 
     const gotData = await usersRef
@@ -73,7 +126,7 @@ describe("fire-collection", () => {
   });
 
   it("findOneById", async () => {
-    const data = createUserData({ displayName: "user-1" });
+    const data = UserDoc.create({ displayName: "user-1" });
     const { id } = await usersRef.add(data);
 
     const user = await usersCollection.findOneById(id);
@@ -82,8 +135,8 @@ describe("fire-collection", () => {
   });
 
   it("findManyByQuery", async () => {
-    const data1 = createUserData({ displayName: "user-1" });
-    const data2 = createUserData({ displayName: "user-2" });
+    const data1 = UserDoc.create({ displayName: "user-1" });
+    const data2 = UserDoc.create({ displayName: "user-2" });
 
     await usersRef.add(data1);
     await usersRef.add(data2);
@@ -98,7 +151,7 @@ describe("fire-collection", () => {
       let date = new Date("1999-12-31");
       date = new Date(date.setDate(date.getDate() + idx));
 
-      const data = createUserData({
+      const data = UserDoc.create({
         displayName: `user-${idx}`,
         createdAt: Timestamp.fromDate(date),
       });
@@ -110,26 +163,26 @@ describe("fire-collection", () => {
     const all = await usersCollection.findAll({});
     expect(all.edges.map((edge) => edge.node.toData())).toStrictEqual(dataList);
 
-    const SIZE = 2;
+    const PAGE_SIZE = 2;
 
-    const firstPage = await usersCollection.findAll({ first: SIZE });
+    const firstPage = await usersCollection.findAll({ first: PAGE_SIZE });
     const firstPageData = firstPage.edges.map((edge) => edge.node.toData());
     expect(firstPageData).toStrictEqual(dataList.slice(0, 2));
 
-    const secondPage = await usersCollection.findAll({ first: SIZE, after: firstPage.pageInfo.endCursor });
+    const secondPage = await usersCollection.findAll({ first: PAGE_SIZE, after: firstPage.pageInfo.endCursor });
     const secondPageData = secondPage.edges.map((edge) => edge.node.toData());
     expect(secondPageData).toStrictEqual(dataList.slice(2, 4));
 
-    const thirdPage = await usersCollection.findAll({ first: SIZE, after: secondPage.pageInfo.endCursor });
+    const thirdPage = await usersCollection.findAll({ first: PAGE_SIZE, after: secondPage.pageInfo.endCursor });
     const thirdPageData = thirdPage.edges.map((edge) => edge.node.toData());
     expect(thirdPageData).toStrictEqual(dataList.slice(4, 6));
 
-    const backToSecondPage = await usersCollection.findAll({ last: SIZE, before: thirdPage.pageInfo.startCursor });
+    const backToSecondPage = await usersCollection.findAll({ last: PAGE_SIZE, before: thirdPage.pageInfo.startCursor });
     const backToSecondPageData = backToSecondPage.edges.map((edge) => edge.node.toData());
     expect(backToSecondPageData).toStrictEqual(dataList.slice(2, 4));
 
-    const lastPage = await usersCollection.findAll({ last: SIZE });
-    const lastPageData = lastPage.edges.map((edge) => edge.node.toData());
-    expect(lastPageData).toStrictEqual(dataList.slice(8, 10));
+    const goToLastPage = await usersCollection.findAll({ last: PAGE_SIZE });
+    const goToLastPageData = goToLastPage.edges.map((edge) => edge.node.toData());
+    expect(goToLastPageData).toStrictEqual(dataList.slice(8, 10));
   });
 });

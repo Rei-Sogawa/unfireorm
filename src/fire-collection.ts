@@ -1,12 +1,10 @@
 import type { FireDocument } from "./fire-document";
-import { _paginateQuery } from "./helper";
 import type {
   CollectionGroup,
   CollectionReference,
   Converter,
   DocumentReference,
   DocumentSnapshot,
-  PaginateInput,
   Query,
   WriteResult,
 } from "./types";
@@ -32,24 +30,6 @@ export class FireCollection<TData extends Record<string, unknown>, TFireDocument
   findOneById(id: string) {
     return this.ref.doc(id).get().then(this.transformer);
   }
-  paginateQuery<TCursor>(
-    paginateInput: PaginateInput<TCursor>,
-    {
-      forward,
-      backward,
-      cursorField,
-    }: {
-      forward: Query<TData>;
-      backward: Query<TData>;
-      cursorField: string;
-    }
-  ) {
-    return _paginateQuery<TCursor, TData, TFireDocument>(
-      paginateInput,
-      { forward, backward, cursorField },
-      this.findManyByQuery.bind(this)
-    );
-  }
 
   insert(data: TData): Promise<DocumentReference<TData>>;
   insert(data: TData & { id: string }): Promise<WriteResult>;
@@ -69,15 +49,11 @@ export class FireCollectionGroup<
   readonly ref: CollectionGroup<TData>;
   readonly transformer: (dSnap: DocumentSnapshot<TData>) => TFireDocument;
 
-  constructor({
-    ref,
-    transformer,
-    converter,
-  }: {
-    ref: CollectionGroup;
-    transformer: (dSnap: DocumentSnapshot<TData>) => TFireDocument;
-    converter?: Converter<TData>;
-  }) {
+  constructor(
+    ref: CollectionGroup,
+    transformer: (dSnap: DocumentSnapshot<TData>) => TFireDocument,
+    converter?: Converter<TData>
+  ) {
     this.ref = converter ? ref.withConverter(converter) : (ref as CollectionGroup<TData>);
     this.transformer = transformer;
   }
@@ -93,23 +69,5 @@ export class FireCollectionGroup<
       if (!doc) throw new Error("Doc not found.");
       return doc;
     });
-  }
-  paginateQuery<TCursor>(
-    paginateInput: PaginateInput<TCursor>,
-    {
-      forward,
-      backward,
-      cursorField,
-    }: {
-      forward: Query<TData>;
-      backward: Query<TData>;
-      cursorField: string;
-    }
-  ) {
-    return _paginateQuery<TCursor, TData, TFireDocument>(
-      paginateInput,
-      { forward, backward, cursorField },
-      this.findManyByQuery.bind(this)
-    );
   }
 }

@@ -1,28 +1,36 @@
+import { FireCollection } from "./fire-collection";
 import { FireDocument } from "./fire-document";
-import { CollectionGroup, CollectionReference, PaginateInput, Query } from "./types";
+import { Query } from "./types";
 
-type FindManyByQuery<TData extends Record<string, unknown>, TFirestoreDocument extends FireDocument<TData>> = (
-  queryFn: (ref: CollectionReference<TData> | CollectionGroup<TData>) => Query<TData>
-) => Promise<TFirestoreDocument[]>;
+export type PaginateInput<TCursor> = {
+  first?: number | null;
+  after?: TCursor | null;
+  last?: number | null;
+  before?: TCursor | null;
+};
 
-export const _paginateQuery = async <
+export type QueryInput<TData> = {
+  forward: Query<TData>;
+  backward: Query<TData>;
+  cursorField: string;
+};
+
+export type FindManyByQuery<
+  TData extends Record<string, unknown>,
+  TFireDocument extends FireDocument<TData>
+> = FireCollection<TData, TFireDocument>["findManyByQuery"];
+
+export const paginateQuery = async <
   TCursor,
   TData extends Record<string, unknown>,
   TFirestoreDocument extends FireDocument<TData>
 >(
   paginateInput: PaginateInput<TCursor>,
-  {
-    forward,
-    backward,
-    cursorField,
-  }: {
-    forward: Query<TData>;
-    backward: Query<TData>;
-    cursorField: string;
-  },
+  queryInput: QueryInput<TData>,
   findManyByQuery: FindManyByQuery<TData, TFirestoreDocument>
 ) => {
   const { first, after, last, before } = paginateInput;
+  const { forward, backward, cursorField } = queryInput;
 
   const nodes = await (async () => {
     if (first) {
