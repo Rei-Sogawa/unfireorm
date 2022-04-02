@@ -1,11 +1,13 @@
 import { FireCollection } from "./fire-collection";
 import type { Converter, DocumentReference, DocumentSnapshot } from "./types";
 
+export type FireDocumentInput<TData> = Pick<DocumentSnapshot<TData>, "id" | "ref" | "data">;
+
 export class FireDocument<TData extends Record<string, unknown>> {
   readonly id: string;
   readonly ref: DocumentReference<TData>;
 
-  constructor(snap: Pick<DocumentSnapshot<TData>, "id" | "ref" | "data">, converter?: Converter<TData>) {
+  constructor(snap: FireDocumentInput<TData>, converter?: Converter<TData>) {
     this.id = snap.id;
     this.ref = converter ? snap.ref.withConverter(converter) : snap.ref;
 
@@ -18,11 +20,12 @@ export class FireDocument<TData extends Record<string, unknown>> {
     const data = Object.fromEntries(Object.entries(rest).filter(([, value]) => !(value instanceof FireCollection)));
     return data as TData;
   }
-
-  update() {
-    return this.ref.set(this.toData());
+  async update() {
+    await this.ref.set(this.toData());
+    return this;
   }
-  delete() {
-    return this.ref.delete();
+  async delete() {
+    await this.ref.delete();
+    return this;
   }
 }

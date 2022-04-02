@@ -1,6 +1,6 @@
-import { FireCollection } from "./fire-collection";
-import { FireDocument } from "./fire-document";
-import { Query } from "./types";
+import { FireCollection } from "../fire-collection";
+import { FireDocument } from "../fire-document";
+import { Query } from "../types";
 
 export type PaginateInput<TCursor> = {
   first?: number | null;

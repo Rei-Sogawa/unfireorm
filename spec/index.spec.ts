@@ -195,6 +195,28 @@ describe("Collection", () => {
     const goToLastPageData = goToLastPage.edges.map((edge) => edge.node.toData());
     expect(goToLastPageData).toStrictEqual(dataList.slice(8, 10));
   });
+
+  it("loader", async () => {
+    const data1 = UserDoc.create({ displayName: "user-1" });
+    const data2 = UserDoc.create({ displayName: "user-2" });
+
+    await usersRef.add(data1);
+    await usersRef.add(data2);
+
+    const [user1, user2] = await usersCollection.findManyByQuery((ref) => ref.orderBy("displayName", "asc"), {
+      prime: true,
+    });
+    user1.displayName = "user-101";
+    user2.displayName = "user-102";
+    await user1.update();
+    await user2.update();
+
+    const cachedUser1 = await usersCollection.findOneById(user1.id, { cache: true });
+    const cachedUser2 = await usersCollection.findOneById(user2.id, { cache: true });
+
+    expect(cachedUser1.toData()).toStrictEqual(data1);
+    expect(cachedUser2.toData()).toStrictEqual(data2);
+  });
 });
 
 describe("CollectionGroup", () => {
@@ -278,28 +300,46 @@ describe("CollectionGroup", () => {
     const goToLastPageData = goToLastPage.edges.map((edge) => edge.node.toData());
     expect(goToLastPageData).toStrictEqual(dataList.slice(8, 10));
   });
+
+  it("loader", async () => {
+    const data1 = PostDoc.create({ content: "post-1" });
+    const data2 = PostDoc.create({ content: "post-2" });
+
+    await usersCollection.insert(UserDoc.create({})).then((user) => user.postsCollection.insert(data1));
+    await usersCollection.insert(UserDoc.create({})).then((user) => user.postsCollection.insert(data2));
+
+    const [post1, post2] = await postsCollectionGroup.findManyByQuery((ref) => ref.orderBy("content", "asc"), {
+      prime: true,
+    });
+    post1.content = "post-101";
+    post2.content = "post-102";
+    await post1.update();
+    await post2.update();
+
+    const cachedPost1 = await postsCollectionGroup.findOneById(post1.id, { cache: true });
+    const cachedPost2 = await postsCollectionGroup.findOneById(post2.id, { cache: true });
+
+    expect(cachedPost1.toData()).toStrictEqual(data1);
+    expect(cachedPost2.toData()).toStrictEqual(data2);
+  });
 });
 
 describe("Document", () => {
   it("update", async () => {
     const data = UserDoc.create({ displayName: "user-1" });
-    const { id } = await usersCollection.insert(data);
-    const user = await usersCollection.findOneById(id);
+    const user = await usersCollection.insert(data);
 
     user.displayName = "user-99";
     await user.update();
 
-    const userAfterUpdate = await usersCollection.findOneById(id);
+    const userAfterUpdate = await usersCollection.findOneById(user.id);
 
     expect(userAfterUpdate.toData()).toStrictEqual({ displayName: "user-99", createdAt: user.createdAt });
   });
 
   it("delete", async () => {
     const data = UserDoc.create({});
-    const { id } = await usersCollection.insert(data);
-    const user = await usersCollection.findOneById(id);
-
-    await user.delete();
+    const user = await usersCollection.insert(data);
 
     const exists = await usersRef
       .doc(user.id)

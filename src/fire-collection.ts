@@ -1,44 +1,59 @@
-import type { FireDocument } from "./fire-document";
-import type {
-  CollectionGroup,
-  CollectionReference,
-  Converter,
-  DocumentReference,
-  DocumentSnapshot,
-  Query,
-  WriteResult,
-} from "./types";
+import type { FireDocument, FireDocumentInput } from "./fire-document";
+import {
+  CollectionDocumentLoader,
+  CollectionGroupDocumentLoader,
+  createCollectionDocumentLoader,
+  createCollectionGroupDocumentLoader,
+} from "./helper/loader";
+import type { CollectionGroup, CollectionReference, Converter, DocumentSnapshot, Query, WriteResult } from "./types";
 
 export class FireCollection<TData extends Record<string, unknown>, TFireDocument extends FireDocument<TData>> {
   readonly ref: CollectionReference<TData>;
-  readonly transformer: (dSnap: DocumentSnapshot<TData>) => TFireDocument;
+  readonly transformer: (dSnap: FireDocumentInput<TData>) => TFireDocument;
+  readonly loader: CollectionDocumentLoader<TData>;
 
   constructor(
     ref: CollectionReference,
-    transformer: (dSnap: DocumentSnapshot<TData>) => TFireDocument,
+    transformer: (dSnap: FireDocumentInput<TData>) => TFireDocument,
     converter?: Converter<TData>
   ) {
     this.ref = converter ? ref.withConverter(converter) : (ref as CollectionReference<TData>);
     this.transformer = transformer;
+    this.loader = createCollectionDocumentLoader(this.ref);
   }
 
-  findManyByQuery(queryFn: (ref: CollectionReference<TData>) => Query<TData>) {
-    return queryFn(this.ref)
-      .get()
-      .then((qSnap) => qSnap.docs.map(this.transformer));
-  }
-  findOneById(id: string) {
-    return this.ref.doc(id).get().then(this.transformer);
-  }
-
-  insert(data: TData): Promise<DocumentReference<TData>>;
-  insert(data: TData & { id: string }): Promise<WriteResult>;
-  async insert(data: TData & { id?: string }) {
-    const { id, ...rest } = data;
-    if (id) {
-      return this.ref.doc(id).set(rest as TData);
+  async findManyByQuery(queryFn: (ref: CollectionReference<TData>) => Query<TData>, { prime } = { prime: false }) {
+    const snaps = await queryFn(this.ref).get();
+    if (prime) {
+      snaps.forEach((snap) => this.loader.prime(snap.id, snap));
     }
-    return this.ref.add(rest as TData);
+    return snaps.docs.map(this.transformer);
+  }
+  findOneById(id: string, { cache } = { cache: false }) {
+    return cache ? this.loader.load(id).then(this.transformer) : this.loader.clear(id).load(id).then(this.transformer);
+  }
+
+  insert(_data: TData): Promise<TFireDocument>;
+  insert(_data: TData & { id: string }): Promise<TFireDocument>;
+  async insert(_data: TData & { id?: string }) {
+    const { id, ...untypedData } = _data;
+    const data = untypedData as TData;
+
+    if (id) {
+      await this.ref.doc(id).set(data);
+      return this.transformer({
+        id,
+        ref: this.ref.doc(id),
+        data: () => data,
+      });
+    }
+
+    const ref = await this.ref.add(data);
+    return this.transformer({
+      id: ref.id,
+      ref,
+      data: () => data,
+    });
   }
 }
 
@@ -47,27 +62,27 @@ export class FireCollectionGroup<
   TFireDocument extends FireDocument<TData>
 > {
   readonly ref: CollectionGroup<TData>;
-  readonly transformer: (dSnap: DocumentSnapshot<TData>) => TFireDocument;
+  readonly transformer: (dSnap: FireDocumentInput<TData>) => TFireDocument;
+  readonly loader: CollectionGroupDocumentLoader<TData>;
 
   constructor(
     ref: CollectionGroup,
-    transformer: (dSnap: DocumentSnapshot<TData>) => TFireDocument,
+    transformer: (dSnap: FireDocumentInput<TData>) => TFireDocument,
     converter?: Converter<TData>
   ) {
     this.ref = converter ? ref.withConverter(converter) : (ref as CollectionGroup<TData>);
     this.transformer = transformer;
+    this.loader = createCollectionGroupDocumentLoader(this.ref);
   }
 
-  findManyByQuery(queryFn: (ref: CollectionGroup<TData>) => Query<TData>) {
-    return queryFn(this.ref)
-      .get()
-      .then((qSnap) => qSnap.docs.map(this.transformer));
+  async findManyByQuery(queryFn: (ref: CollectionGroup<TData>) => Query<TData>, { prime } = { prime: false }) {
+    const snaps = await queryFn(this.ref).get();
+    if (prime) {
+      snaps.forEach((snap) => this.loader.prime(snap.id, snap));
+    }
+    return snaps.docs.map(this.transformer);
   }
-  findOneById(id: string) {
-    return this.findManyByQuery((ref) => ref.where("__id", "==", id)).then((docs) => {
-      const doc = docs.at(0);
-      if (!doc) throw new Error("Doc not found.");
-      return doc;
-    });
+  findOneById(id: string, { cache } = { cache: false }) {
+    return cache ? this.loader.load(id).then(this.transformer) : this.loader.clear(id).load(id).then(this.transformer);
   }
 }
