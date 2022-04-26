@@ -4,8 +4,8 @@ import {
   CollectionGroupDocumentLoader,
   createCollectionDocumentLoader,
   createCollectionGroupDocumentLoader,
-} from "./helper/loader";
-import type { CollectionGroup, CollectionReference, Converter, DocumentSnapshot, Query, WriteResult } from "./types";
+} from "./helper";
+import type { CollectionGroup, CollectionReference, Converter, Query } from "./types";
 
 export class FireCollection<TData extends Record<string, unknown>, TFireDocument extends FireDocument<TData>> {
   readonly ref: CollectionReference<TData>;
@@ -15,9 +15,9 @@ export class FireCollection<TData extends Record<string, unknown>, TFireDocument
   constructor(
     ref: CollectionReference,
     transformer: (dSnap: FireDocumentInput<TData>) => TFireDocument,
-    converter?: Converter<TData>
+    converter: Converter<TData>
   ) {
-    this.ref = converter ? ref.withConverter(converter) : (ref as CollectionReference<TData>);
+    this.ref = ref.withConverter(converter);
     this.transformer = transformer;
     this.loader = createCollectionDocumentLoader(this.ref);
   }
@@ -36,8 +36,8 @@ export class FireCollection<TData extends Record<string, unknown>, TFireDocument
   insert(_data: TData): Promise<TFireDocument>;
   insert(_data: TData & { id: string }): Promise<TFireDocument>;
   async insert(_data: TData & { id?: string }) {
-    const { id, ...untypedData } = _data;
-    const data = untypedData as TData;
+    const { id, ...rest } = _data;
+    const data = rest as TData;
 
     if (id) {
       await this.ref.doc(id).set(data);
@@ -57,10 +57,7 @@ export class FireCollection<TData extends Record<string, unknown>, TFireDocument
   }
 }
 
-export class FireCollectionGroup<
-  TData extends Record<string, unknown> & { __id: string },
-  TFireDocument extends FireDocument<TData>
-> {
+export class FireCollectionGroup<TData extends Record<string, unknown>, TFireDocument extends FireDocument<TData>> {
   readonly ref: CollectionGroup<TData>;
   readonly transformer: (dSnap: FireDocumentInput<TData>) => TFireDocument;
   readonly loader: CollectionGroupDocumentLoader<TData>;
@@ -68,11 +65,12 @@ export class FireCollectionGroup<
   constructor(
     ref: CollectionGroup,
     transformer: (dSnap: FireDocumentInput<TData>) => TFireDocument,
-    converter?: Converter<TData>
+    converter: Converter<TData>,
+    uniqueFiled: keyof TData
   ) {
-    this.ref = converter ? ref.withConverter(converter) : (ref as CollectionGroup<TData>);
+    this.ref = ref.withConverter(converter);
     this.transformer = transformer;
-    this.loader = createCollectionGroupDocumentLoader(this.ref);
+    this.loader = createCollectionGroupDocumentLoader(this.ref, uniqueFiled);
   }
 
   async findManyByQuery(queryFn: (ref: CollectionGroup<TData>) => Query<TData>, { prime } = { prime: false }) {

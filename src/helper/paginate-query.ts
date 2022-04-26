@@ -1,4 +1,4 @@
-import { FireCollection } from "../fire-collection";
+import { FireCollection, FireCollectionGroup } from "../fire-collection";
 import { FireDocument } from "../fire-document";
 import { Query } from "../types";
 
@@ -12,22 +12,14 @@ export type PaginateInput<TCursor> = {
 export type QueryInput<TData> = {
   forward: Query<TData>;
   backward: Query<TData>;
-  cursorField: string;
+  cursorField: keyof TData;
 };
 
-export type FindManyByQuery<
-  TData extends Record<string, unknown>,
-  TFireDocument extends FireDocument<TData>
-> = FireCollection<TData, TFireDocument>["findManyByQuery"];
-
-export const paginateQuery = async <
-  TCursor,
-  TData extends Record<string, unknown>,
-  TFirestoreDocument extends FireDocument<TData>
->(
+export const paginateQuery = async <TCursor, TData extends Record<string, unknown>>(
+  self: FireCollection<TData, FireDocument<TData>> | FireCollectionGroup<TData, FireDocument<TData>>,
   paginateInput: PaginateInput<TCursor>,
   queryInput: QueryInput<TData>,
-  findManyByQuery: FindManyByQuery<TData, TFirestoreDocument>
+  { prime } = { prime: false }
 ) => {
   const { first, after, last, before } = paginateInput;
   const { forward, backward, cursorField } = queryInput;
@@ -35,22 +27,22 @@ export const paginateQuery = async <
   const nodes = await (async () => {
     if (first) {
       return after
-        ? findManyByQuery(() => forward.startAfter(after).limit(first))
-        : findManyByQuery(() => forward.limit(first));
+        ? self.findManyByQuery(() => forward.startAfter(after).limit(first), { prime })
+        : self.findManyByQuery(() => forward.limit(first), { prime });
     }
     if (last) {
       const backwardNodes = before
-        ? await findManyByQuery(() => backward.startAfter(before).limit(last))
-        : await findManyByQuery(() => backward.limit(last));
+        ? await self.findManyByQuery(() => backward.startAfter(before).limit(last), { prime })
+        : await self.findManyByQuery(() => backward.limit(last), { prime });
       return backwardNodes.reverse();
     }
-    return findManyByQuery(() => forward);
+    return self.findManyByQuery(() => forward, { prime });
   })();
 
   const edges = nodes.map((node) => {
     const data = node.toData();
     const cursor = data[cursorField] as TCursor | undefined;
-    if (typeof cursor === "undefined") throw new Error(`data[${cursorField}] is undefined.`);
+    if (typeof cursor === "undefined") throw new Error(`data[${cursorField}] is undefined`);
     return { node, cursor };
   });
 
@@ -58,10 +50,10 @@ export const paginateQuery = async <
   const startCursor = edges.at(0)?.cursor;
 
   const hasNextPage = endCursor
-    ? (await findManyByQuery(() => forward.startAfter(endCursor).limit(1))).length > 0
+    ? (await self.findManyByQuery(() => forward.startAfter(endCursor).limit(1))).length > 0
     : false;
   const hasPreviousPage = startCursor
-    ? (await findManyByQuery(() => forward.endBefore(startCursor).limit(1))).length > 0
+    ? (await self.findManyByQuery(() => forward.endBefore(startCursor).limit(1))).length > 0
     : false;
 
   return {

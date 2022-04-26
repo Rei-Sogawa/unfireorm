@@ -1,11 +1,11 @@
 {
   "private": false,
   "name": "@rei-sogawa/unfireorm",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "repository": "https://github.com/Rei-Sogawa/unfireorm.git",
-  "author": "Rei-Sogawa <natto.and.eggs@gmail.com>",
+  "repository": "https://github.com/rtokkie/unfireorm.git",
+  "author": "rtokkie",
   "license": "MIT",
   "scripts": {
     "build": "tsc",

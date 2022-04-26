@@ -15,18 +15,19 @@ export const createCollectionDocumentLoader = <TData extends Record<string, unkn
 
 export type CollectionGroupDocumentLoader<TData> = DataLoader<string, DocumentSnapshot<TData>>;
 
-export const createCollectionGroupDocumentLoader = <TData extends Record<string, unknown> & { __id: string }>(
-  ref: CollectionGroup<TData>
+export const createCollectionGroupDocumentLoader = <TData extends Record<string, unknown>>(
+  ref: CollectionGroup<TData>,
+  uniqueFiled: keyof TData
 ) => {
   const loader = new DataLoader<string, DocumentSnapshot<TData>>((ids) => {
     return Promise.all(
       ids.map(async (id) => {
         const snaps = await ref
-          .where("__id", "==", id)
+          .where(uniqueFiled as string, "==", id)
           .get()
           .then(({ docs }) => docs);
         const snap = snaps.at(0);
-        if (!snap) throw new Error("Snap not found");
+        if (!snap) throw new Error("snap not found");
         return snap;
       })
     );

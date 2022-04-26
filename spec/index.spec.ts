@@ -3,13 +3,16 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
 import { CollectionGroup, CollectionReference } from "../src/types";
 import { FireCollection, FireCollectionGroup } from "./../src/fire-collection";
-import { FireDocument } from "./../src/fire-document";
+import { FireDocument, FireDocumentInput } from "./../src/fire-document";
 import { PaginateInput, paginateQuery } from "./../src/helper";
+import { createNoopConverter } from "./../src/helper/noop-converter";
 import { clearFirestore, getDb, id } from "./test-util";
 
 const db = getDb();
 const usersRef = db.collection("users");
 const postsGroupRef = db.collectionGroup("posts");
+const userConverter = createNoopConverter<UserData>();
+const postConverter = createNoopConverter<PostData>();
 
 type UserData = {
   displayName: string;
@@ -19,6 +22,15 @@ class UserDoc extends FireDocument<UserData> implements UserData {
   displayName: string;
   createdAt: Timestamp;
   postsCollection = new PostsCollection(this.ref.collection("posts"));
+
+  constructor(snap: FireDocumentInput<UserData>) {
+    super(snap, userConverter);
+  }
+
+  toData(): UserData {
+    const { id, ref, postsCollection, ...data } = this;
+    return data;
+  }
 
   static create(data: Partial<UserData>): UserData {
     return {
@@ -30,10 +42,11 @@ class UserDoc extends FireDocument<UserData> implements UserData {
 }
 class UsersCollection extends FireCollection<UserData, UserDoc> {
   constructor(ref: CollectionReference) {
-    super(ref, (snap) => new UserDoc(snap));
+    super(ref, (snap) => new UserDoc(snap), userConverter);
   }
   findAll(paginateInput: PaginateInput<Timestamp>) {
     return paginateQuery(
+      this,
       paginateInput,
       {
         forward: this.ref.orderBy("createdAt", "asc"),
@@ -55,6 +68,15 @@ class PostDoc extends FireDocument<PostData> implements PostData {
   content: string;
   createdAt: Timestamp;
 
+  constructor(snap: FireDocumentInput<PostData>) {
+    super(snap, postConverter);
+  }
+
+  toData() {
+    const { id, ref, ...data } = this;
+    return data;
+  }
+
   static create(data: Partial<PostData>): PostData {
     return {
       __id: id(),
@@ -66,10 +88,11 @@ class PostDoc extends FireDocument<PostData> implements PostData {
 }
 class PostsCollection extends FireCollection<PostData, PostDoc> {
   constructor(ref: CollectionReference) {
-    super(ref, (snap) => new PostDoc(snap));
+    super(ref, (snap) => new PostDoc(snap), postConverter);
   }
   findAll(paginateInput: PaginateInput<Timestamp>) {
     return paginateQuery(
+      this,
       paginateInput,
       {
         forward: this.ref.orderBy("createdAt", "asc"),
@@ -82,10 +105,11 @@ class PostsCollection extends FireCollection<PostData, PostDoc> {
 }
 class PostsCollectionGroup extends FireCollectionGroup<PostData, PostDoc> {
   constructor(ref: CollectionGroup) {
-    super(ref, (snap) => new PostDoc(snap));
+    super(ref, (snap) => new PostDoc(snap), postConverter, "__id");
   }
   findAll(paginateInput: PaginateInput<Timestamp>) {
     return paginateQuery(
+      this,
       paginateInput,
       {
         forward: this.ref.orderBy("createdAt", "asc"),
@@ -341,7 +365,16 @@ describe("Document", () => {
     const data = UserDoc.create({});
     const user = await usersCollection.insert(data);
 
-    const exists = await usersRef
+    let exists = await usersRef
+      .doc(user.id)
+      .get()
+      .then((snap) => snap.exists);
+
+    expect(exists).toBe(true);
+
+    await user.delete();
+
+    exists = await usersRef
       .doc(user.id)
       .get()
       .then((snap) => snap.exists);
