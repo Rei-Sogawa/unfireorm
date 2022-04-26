@@ -4,8 +4,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { CollectionGroup, CollectionReference } from "../src/types";
 import { FireCollection, FireCollectionGroup } from "./../src/fire-collection";
 import { FireDocument, FireDocumentInput } from "./../src/fire-document";
-import { PaginateInput, paginateQuery } from "./../src/helper";
-import { createNoopConverter } from "./../src/helper/noop-converter";
+import { createNoopConverter, PaginateInput, paginateQuery } from "./../src/helper";
 import { clearFirestore, getDb, id } from "./test-util";
 
 const db = getDb();
