@@ -17,13 +17,14 @@ export type CollectionGroupDocumentLoader<TData> = DataLoader<string, DocumentSn
 
 export const createCollectionGroupDocumentLoader = <TData extends Record<string, unknown>>(
   ref: CollectionGroup<TData>,
-  uniqueFiled: keyof TData
+  idField: keyof TData
 ) => {
+  if (typeof idField !== "string") throw new Error("idFiled not string");
   const loader = new DataLoader<string, DocumentSnapshot<TData>>((ids) => {
     return Promise.all(
       ids.map(async (id) => {
         const snaps = await ref
-          .where(uniqueFiled as string, "==", id)
+          .where(idField, "==", id)
           .get()
           .then(({ docs }) => docs);
         const snap = snaps.at(0);

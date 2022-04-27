@@ -44,16 +44,11 @@ class UsersCollection extends FireCollection<UserData, UserDoc> {
     super(ref, (snap) => new UserDoc(snap), userConverter);
   }
   findAll(paginateInput: PaginateInput<Timestamp>) {
-    return paginateQuery(
-      this,
-      paginateInput,
-      {
-        forward: this.ref.orderBy("createdAt", "asc"),
-        backward: this.ref.orderBy("createdAt", "desc"),
-        cursorField: "createdAt",
-      },
-      this.findManyByQuery.bind(this)
-    );
+    return paginateQuery(this, paginateInput, {
+      forward: this.ref.orderBy("createdAt", "asc"),
+      backward: this.ref.orderBy("createdAt", "desc"),
+      cursorField: "createdAt",
+    });
   }
 }
 
@@ -90,16 +85,11 @@ class PostsCollection extends FireCollection<PostData, PostDoc> {
     super(ref, (snap) => new PostDoc(snap), postConverter);
   }
   findAll(paginateInput: PaginateInput<Timestamp>) {
-    return paginateQuery(
-      this,
-      paginateInput,
-      {
-        forward: this.ref.orderBy("createdAt", "asc"),
-        backward: this.ref.orderBy("createdAt", "desc"),
-        cursorField: "createdAt",
-      },
-      this.findManyByQuery.bind(this)
-    );
+    return paginateQuery(this, paginateInput, {
+      forward: this.ref.orderBy("createdAt", "asc"),
+      backward: this.ref.orderBy("createdAt", "desc"),
+      cursorField: "createdAt",
+    });
   }
 }
 class PostsCollectionGroup extends FireCollectionGroup<PostData, PostDoc> {
@@ -107,16 +97,11 @@ class PostsCollectionGroup extends FireCollectionGroup<PostData, PostDoc> {
     super(ref, (snap) => new PostDoc(snap), postConverter, "__id");
   }
   findAll(paginateInput: PaginateInput<Timestamp>) {
-    return paginateQuery(
-      this,
-      paginateInput,
-      {
-        forward: this.ref.orderBy("createdAt", "asc"),
-        backward: this.ref.orderBy("createdAt", "desc"),
-        cursorField: "createdAt",
-      },
-      this.findManyByQuery.bind(this)
-    );
+    return paginateQuery(this, paginateInput, {
+      forward: this.ref.orderBy("createdAt", "asc"),
+      backward: this.ref.orderBy("createdAt", "desc"),
+      cursorField: "createdAt",
+    });
   }
 }
 
@@ -234,11 +219,17 @@ describe("Collection", () => {
     await user1.update();
     await user2.update();
 
-    const cachedUser1 = await usersCollection.findOneById(user1.id, { cache: true });
-    const cachedUser2 = await usersCollection.findOneById(user2.id, { cache: true });
+    const cachedUser1 = await usersCollection.findOneById(user1.id);
+    const cachedUser2 = await usersCollection.findOneById(user2.id);
 
     expect(cachedUser1.toData()).toStrictEqual(data1);
     expect(cachedUser2.toData()).toStrictEqual(data2);
+
+    const noCachedUser1 = await usersCollection.findOneById(user1.id, { cache: false });
+    const noCachedUser2 = await usersCollection.findOneById(user2.id, { cache: false });
+
+    expect(noCachedUser1.toData()).toStrictEqual(user1.toData());
+    expect(noCachedUser2.toData()).toStrictEqual(user2.toData());
   });
 });
 
@@ -328,8 +319,12 @@ describe("CollectionGroup", () => {
     const data1 = PostDoc.create({ content: "post-1" });
     const data2 = PostDoc.create({ content: "post-2" });
 
-    await usersCollection.insert(UserDoc.create({})).then((user) => user.postsCollection.insert(data1));
-    await usersCollection.insert(UserDoc.create({})).then((user) => user.postsCollection.insert(data2));
+    await usersCollection
+      .insert(UserDoc.create({}))
+      .then((user) => user.postsCollection.insert({ id: data1.__id, ...data1 }));
+    await usersCollection
+      .insert(UserDoc.create({}))
+      .then((user) => user.postsCollection.insert({ id: data2.__id, ...data2 }));
 
     const [post1, post2] = await postsCollectionGroup.findManyByQuery((ref) => ref.orderBy("content", "asc"), {
       prime: true,
@@ -339,11 +334,17 @@ describe("CollectionGroup", () => {
     await post1.update();
     await post2.update();
 
-    const cachedPost1 = await postsCollectionGroup.findOneById(post1.id, { cache: true });
-    const cachedPost2 = await postsCollectionGroup.findOneById(post2.id, { cache: true });
+    const cachedPost1 = await postsCollectionGroup.findOneById(post1.id);
+    const cachedPost2 = await postsCollectionGroup.findOneById(post2.id);
 
     expect(cachedPost1.toData()).toStrictEqual(data1);
     expect(cachedPost2.toData()).toStrictEqual(data2);
+
+    const noCachedPost1 = await postsCollectionGroup.findOneById(post1.id, { cache: false });
+    const noCachedPost2 = await postsCollectionGroup.findOneById(post2.id, { cache: false });
+
+    expect(noCachedPost1.toData()).toStrictEqual(post1.toData());
+    expect(noCachedPost2.toData()).toStrictEqual(post2.toData());
   });
 });
 

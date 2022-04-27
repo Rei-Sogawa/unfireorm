@@ -29,7 +29,7 @@ export class FireCollection<TData extends Record<string, unknown>, TFireDocument
     }
     return snaps.docs.map(this.transformer);
   }
-  findOneById(id: string, { cache } = { cache: false }) {
+  findOneById(id: string, { cache } = { cache: true }) {
     return cache ? this.loader.load(id).then(this.transformer) : this.loader.clear(id).load(id).then(this.transformer);
   }
 
@@ -66,11 +66,11 @@ export class FireCollectionGroup<TData extends Record<string, unknown>, TFireDoc
     ref: CollectionGroup,
     transformer: (dSnap: FireDocumentInput<TData>) => TFireDocument,
     converter: Converter<TData>,
-    uniqueFiled: keyof TData
+    idFiled: keyof TData
   ) {
     this.ref = ref.withConverter(converter);
     this.transformer = transformer;
-    this.loader = createCollectionGroupDocumentLoader(this.ref, uniqueFiled);
+    this.loader = createCollectionGroupDocumentLoader(this.ref, idFiled);
   }
 
   async findManyByQuery(queryFn: (ref: CollectionGroup<TData>) => Query<TData>, { prime } = { prime: false }) {
@@ -80,7 +80,7 @@ export class FireCollectionGroup<TData extends Record<string, unknown>, TFireDoc
     }
     return snaps.docs.map(this.transformer);
   }
-  findOneById(id: string, { cache } = { cache: false }) {
+  findOneById(id: string, { cache } = { cache: true }) {
     return cache ? this.loader.load(id).then(this.transformer) : this.loader.clear(id).load(id).then(this.transformer);
   }
 }
