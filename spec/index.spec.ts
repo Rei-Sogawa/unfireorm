@@ -94,7 +94,7 @@ class PostsCollection extends FireCollection<PostData, PostDoc> {
 }
 class PostsCollectionGroup extends FireCollectionGroup<PostData, PostDoc> {
   constructor(ref: CollectionGroup) {
-    super(ref, (snap) => new PostDoc(snap), "__id", postConverter);
+    super(ref, "__id", (snap) => new PostDoc(snap), postConverter);
   }
   findAll(paginateInput: PaginateInput<Timestamp>) {
     return paginateQuery(this, paginateInput, {

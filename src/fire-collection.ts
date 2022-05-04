@@ -64,8 +64,8 @@ export class FireCollectionGroup<TData extends Record<string, unknown>, TFireDoc
 
   constructor(
     ref: CollectionGroup,
-    transformer: (dSnap: FireDocumentInput<TData>) => TFireDocument,
     idFiled: keyof TData,
+    transformer: (dSnap: FireDocumentInput<TData>) => TFireDocument,
     converter?: Converter<TData>
   ) {
     this.ref = converter ? ref.withConverter(converter) : (ref as CollectionGroup<TData>);
