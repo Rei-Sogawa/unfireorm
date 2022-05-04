@@ -22,7 +22,7 @@ class UserDoc extends FireDocument<UserData> implements UserData {
   createdAt: Timestamp;
   postsCollection = new PostsCollection(this.ref.collection("posts"));
 
-  constructor(snap: FireDocumentInput<UserData>) {
+  constructor(snap: FireDocumentInput) {
     super(snap, userConverter);
   }
 
@@ -62,7 +62,7 @@ class PostDoc extends FireDocument<PostData> implements PostData {
   content: string;
   createdAt: Timestamp;
 
-  constructor(snap: FireDocumentInput<PostData>) {
+  constructor(snap: FireDocumentInput) {
     super(snap, postConverter);
   }
 
@@ -216,8 +216,8 @@ describe("Collection", () => {
     });
     user1.displayName = "user-101";
     user2.displayName = "user-102";
-    await user1.update();
-    await user2.update();
+    await user1.set();
+    await user2.set();
 
     const cachedUser1 = await usersCollection.findOneById(user1.id);
     const cachedUser2 = await usersCollection.findOneById(user2.id);
@@ -331,8 +331,8 @@ describe("CollectionGroup", () => {
     });
     post1.content = "post-101";
     post2.content = "post-102";
-    await post1.update();
-    await post2.update();
+    await post1.set();
+    await post2.set();
 
     const cachedPost1 = await postsCollectionGroup.findOneById(post1.id);
     const cachedPost2 = await postsCollectionGroup.findOneById(post2.id);
@@ -354,7 +354,7 @@ describe("Document", () => {
     const user = await usersCollection.insert(data);
 
     user.displayName = "user-99";
-    await user.update();
+    await user.set();
 
     const userAfterUpdate = await usersCollection.findOneById(user.id);
 

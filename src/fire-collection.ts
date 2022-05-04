@@ -9,12 +9,12 @@ import type { CollectionGroup, CollectionReference, Converter, Query } from "./t
 
 export class FireCollection<TData extends Record<string, unknown>, TFireDocument extends FireDocument<TData>> {
   readonly ref: CollectionReference<TData>;
-  readonly transformer: (dSnap: FireDocumentInput<TData>) => TFireDocument;
+  readonly transformer: (dSnap: FireDocumentInput) => TFireDocument;
   readonly loader: CollectionDocumentLoader<TData>;
 
   constructor(
     ref: CollectionReference,
-    transformer: (dSnap: FireDocumentInput<TData>) => TFireDocument,
+    transformer: (dSnap: FireDocumentInput) => TFireDocument,
     converter?: Converter<TData>
   ) {
     this.ref = converter ? ref.withConverter(converter) : (ref as CollectionReference<TData>);
@@ -59,13 +59,13 @@ export class FireCollection<TData extends Record<string, unknown>, TFireDocument
 
 export class FireCollectionGroup<TData extends Record<string, unknown>, TFireDocument extends FireDocument<TData>> {
   readonly ref: CollectionGroup<TData>;
-  readonly transformer: (dSnap: FireDocumentInput<TData>) => TFireDocument;
+  readonly transformer: (dSnap: FireDocumentInput) => TFireDocument;
   readonly loader: CollectionGroupDocumentLoader<TData>;
 
   constructor(
     ref: CollectionGroup,
     idFiled: keyof TData,
-    transformer: (dSnap: FireDocumentInput<TData>) => TFireDocument,
+    transformer: (dSnap: FireDocumentInput) => TFireDocument,
     converter?: Converter<TData>
   ) {
     this.ref = converter ? ref.withConverter(converter) : (ref as CollectionGroup<TData>);
