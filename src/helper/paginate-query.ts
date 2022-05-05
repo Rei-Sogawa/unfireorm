@@ -15,8 +15,13 @@ export type QueryInput<TData> = {
   cursorField: keyof TData;
 };
 
-export const paginateQuery = async <TCursor, TData extends Record<string, unknown>>(
-  self: FireCollection<TData, FireDocument<TData>> | FireCollectionGroup<TData, FireDocument<TData>>,
+export const paginateQuery = async <
+  TData extends Record<string, unknown>,
+  TCursor extends TData[keyof TData],
+  TFireDocument extends FireDocument<TData>,
+  TCollection extends FireCollection<TData, TFireDocument> | FireCollectionGroup<TData, TFireDocument>
+>(
+  self: TCollection,
   paginateInput: PaginateInput<TCursor>,
   queryInput: QueryInput<TData>,
   { prime } = { prime: false }
