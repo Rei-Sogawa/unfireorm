@@ -51,8 +51,10 @@ export const paginateQuery = async <
     return { node, cursor };
   });
 
-  const endCursor = edges.at(-1)?.cursor;
-  const startCursor = edges.at(0)?.cursor;
+  const end = edges[edges.length - 1];
+  const start = edges[0];
+  const endCursor = end ? end.cursor : undefined;
+  const startCursor = start ? start.cursor : undefined;
 
   const hasNextPage = endCursor
     ? (await self.findManyByQuery(() => forward.startAfter(endCursor).limit(1))).length > 0
